@@ -13,7 +13,9 @@ client_socket.connect((DEST_IP, DEST_PORT))
 
 def send_message():
     '''send a message to the server to be broadcast'''
-    pass
+    while True:
+        message = input("")
+        client_socket.send(message.encode(ENCODER))
 
 def receive_message():
     '''receive an incoming message from the server'''
@@ -33,8 +35,14 @@ def receive_message():
             print("An error occured...")
             client_socket.close()
             break
+
+# create threads to continuously send and receive messages
+receive_thread = threading.Thread(target=receive_message)
+send_thread = threading.Thread(target=send_message)
+
 # start the client
-receive_message()
+receive_thread.start()
+send_thread.start()
 
 
 

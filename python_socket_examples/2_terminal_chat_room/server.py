@@ -19,9 +19,40 @@ client_name_list = []
 
 def broadcast_message(message):
      '''Send a message to All clients connected to the server'''
-     pass
+     # I feel as if there could be a socket function that broadcasts a message to all clients so we wouldn't need to create our own broadcast_message() function
+     for client_socket in client_socket_list:
+         client_socket.send(message)
+
+
 def receive_message(client_socket):
     '''Receive an incoming message from a specific client and forward the message to be broadcast'''
+    while True:
+        try:
+            # get the name of the given client
+            index = client_socket_list.index(client_socket)
+            name = client_name_list[index]
+
+            # receive message from the client
+            message = client_socket.recv(BYTESIZE).decode(ENCODER) # or can maybe do it like this as well?: message = (name + ":" + message).encode(ENCODER)
+            broadcast_message(message)
+        except:
+            # find the index of the client socket in our lists
+            # I don't understand why we have to redefine index and name seems redundant
+            index = client_socket.list.index(client_socket)
+            name = client_name_list[index]
+
+
+            # remove the client socket and name from lists
+            client_socket_list.remove(client_socket)
+            client_name_list.remove(name)
+
+            # client_socket.close()
+
+            # broadcast that the client has left the chat
+            broadcast_message(f"{name} has left the chat!".encode(ENCODER))
+
+
+
 
 def connect_client():
     '''Connect an incoming client to the server'''
@@ -42,6 +73,10 @@ def connect_client():
         print(f"Name of new client is {client_name}\n") # server
         client_socket.send(f"{client_name}, you have connected to the server!".encode(ENCODER))
         broadcast_message(f"{client_name} has joined the chat".encode(ENCODER))
+
+        # now that a new client has connected, start a thread
+        receive_thread = threading.Thread(target=receive_message(), args=(client_socket,))
+        receive_thread.start()
 
 # start the server
 print("server is listening for incoming connection...")
