@@ -9,7 +9,7 @@ BYTESIZE = 1024
 
 # create a client socket
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client_socket.connect((DEST_IP. DEST_PORT))
+client_socket.connect((DEST_IP, DEST_PORT))
 
 def send_message():
     '''send a message to the server to be broadcast'''
@@ -17,4 +17,24 @@ def send_message():
 
 def receive_message():
     '''receive an incoming message from the server'''
-    pass
+    while True:
+        try:
+            # receive an incoming message from the server
+            message = client_socket.recv(BYTESIZE).decode(ENCODER)
+
+            # check for the name flag, else show the message
+            if message == "NAME":
+                name = input("What is your name?: ")
+                client_socket.send(name.encode(ENCODER))
+            else:
+                print(message)
+        except:
+            # an error occurred, close the connection
+            print("An error occured...")
+            client_socket.close()
+            break
+# start the client
+receive_message()
+
+
+
