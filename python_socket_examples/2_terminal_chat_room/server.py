@@ -24,7 +24,7 @@ def broadcast_message(message):
          client_socket.send(message)
 
 
-def receive_message(client_socket):
+def receive_message(client_socket, client_address): # I added 'client_address'
     '''Receive an incoming message from a specific client and forward the message to be broadcast'''
     while True:
         try:
@@ -34,11 +34,12 @@ def receive_message(client_socket):
 
             # receive message from the client
             message = client_socket.recv(BYTESIZE).decode(ENCODER) # or can maybe do it like this as well?: message = (name + ":" + message).encode(ENCODER)
+            message = f"\033[1;92m\t{name}: {message}\033[0m".encode(ENCODER) # bright green, bolded message tabbed in
             broadcast_message(message)
         except:
             # find the index of the client socket in our lists
             # I don't understand why we have to redefine index and name seems redundant
-            index = client_socket.list.index(client_socket)
+            index = client_socket_list.index(client_socket)
             name = client_name_list[index]
 
 
@@ -46,10 +47,12 @@ def receive_message(client_socket):
             client_socket_list.remove(client_socket)
             client_name_list.remove(name)
 
-            # client_socket.close()
+            # close the client socket
+            client_socket.close()
 
             # broadcast that the client has left the chat
-            broadcast_message(f"{name} has left the chat!".encode(ENCODER))
+            broadcast_message(f"\033[5;91m\t{name} has left the chat!\033[0m".encode(ENCODER)) # bright red, blinking message tabbed in
+            print(f'{client_address} disconnected.') # I added this
 
 
 
@@ -72,10 +75,10 @@ def connect_client():
         # update the server, individual client, and ALL clients
         print(f"Name of new client is {client_name}\n") # server
         client_socket.send(f"{client_name}, you have connected to the server!".encode(ENCODER))
-        broadcast_message(f"{client_name} has joined the chat".encode(ENCODER))
+        broadcast_message(f"\n{client_name} has joined the chat".encode(ENCODER))
 
         # now that a new client has connected, start a thread
-        receive_thread = threading.Thread(target=receive_message(), args=(client_socket,))
+        receive_thread = threading.Thread(target=receive_message, args=(client_socket, client_address,))
         receive_thread.start()
 
 # start the server
