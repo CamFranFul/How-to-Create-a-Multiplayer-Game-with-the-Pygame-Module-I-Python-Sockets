@@ -1,6 +1,6 @@
 # Tkinter introduction
-import tkinter
-from tkinter import BOTH, StringVar
+import tkinter # why does this not import everything automatically within tkinter???
+from tkinter import BOTH, StringVar, END
 
 # define window
 root = tkinter.Tk()
@@ -16,7 +16,13 @@ output_color = "#dee7e7" # R:222, G:231, B:231 that is Light grayish cyan
 root.config(bg=root_color)
 
 # define functions
+def send_message():
+    '''send the user's message to the output frame'''
+    message_label = tkinter.Label(output_frame, text=message_entry.get(), fg=text_color.get(), bg=output_color, font=('Helvetica', 12))
+    message_label.pack()
 
+    # clear the entry field for the next message
+    message_entry.delete(0, END)
 
 # define GUI layout
 # define frames (that are placed on the root window)
@@ -26,8 +32,8 @@ input_frame.pack(pady=10)
 output_frame.pack(padx=10, pady=(0,10), fill=BOTH, expand=True)
 
 # define widgets (that are placed on the frames)
-message_entry = tkinter.Entry(input_frame, text = "Enter a message", width=30)
-send_button = tkinter.Button(input_frame, text="Send")
+message_entry = tkinter.Entry(input_frame, text = "Enter a message", width=25, font=("Helvetica", 12)) # why doesn't the "Enter a message" text show within the messsage entry textbox??
+send_button = tkinter.Button(input_frame, text="Send", command=send_message, bg=output_color)
 message_entry.grid(row=0, column=0, columnspan =3, padx=10, pady=10)
 send_button.grid(row=0, column=3, rowspan=2, padx=10, pady=10) # did not include "ipadx=20, ipady=5" as the button gets cut off
 
@@ -36,8 +42,8 @@ text_color.set("#ff0000") # sets 'text color' to the value red by default
 # these widgets will track the string variable object 'text_color'
 # the value of this string variable object is expressed as a string, in this case the strings are text colors
 red_button = tkinter.Radiobutton(input_frame, text="Red", variable=text_color, value="#ff0000", bg=input_color)
-green_button = tkinter.Radiobutton(input_frame, text="Green", variable=text_color, value="#ff0000", bg=input_color)
-blue_button = tkinter.Radiobutton(input_frame, text="Blue", variable=text_color, value="#ff0000", bg=input_color)
+green_button = tkinter.Radiobutton(input_frame, text="Green", variable=text_color, value="#00ff00", bg=input_color)
+blue_button = tkinter.Radiobutton(input_frame, text="Blue", variable=text_color, value="#0000ff", bg=input_color)
 # place these radio button widgets onto the input frame via the grid system
 red_button.grid(row=1, column=0)
 green_button.grid(row=1, column=1)
