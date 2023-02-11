@@ -3,7 +3,7 @@ import socket, threading
 
 # define constants to be used
 HOST_IP = socket.gethostbyname(socket.gethostname())
-HOST_PORT = 12345
+HOST_PORT = 54321
 ENCODER = 'utf-8'
 BYTESIZE = 1024
 
@@ -75,7 +75,7 @@ def connect_client():
         # update the server, individual client, and ALL clients
         print(f"Name of new client is {client_name}\n") # server
         client_socket.send(f"{client_name}, you have connected to the server!".encode(ENCODER))
-        broadcast_message(f"\n{client_name} has joined the chat".encode(ENCODER))
+        broadcast_message(f"{client_name} has joined the chat!".encode(ENCODER)) # I added the '\n' # not sure why it's not saying this on the GUI once I have connected on the client script (it must be b/c I haven't written the receive_message() function yet on the client script)
 
         # now that a new client has connected, start a thread
         receive_thread = threading.Thread(target=receive_message, args=(client_socket, client_address,))
