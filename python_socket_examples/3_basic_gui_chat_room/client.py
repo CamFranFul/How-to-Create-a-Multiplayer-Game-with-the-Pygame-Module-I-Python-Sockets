@@ -44,7 +44,7 @@ def connect():
 
         # create a client socket to connect to the server
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # try:
+        client_socket.connect((ip, int(port)))  # must convert port address from string to integer       # try:
         #     client_socket.connect((ip, int(port))) # must convert port address from string to integer
         # except ConnectionRefusedError:
         #     # no name flag was sent, connection was refused # I would say 'connection invalid' instead because if there is no connection to the server to begin with, the server wouldn't be able to refuse a connection most likely due to an improper IP address
@@ -87,7 +87,7 @@ def verify_connection(name):
 
             # create a thread to continuously receive messages from the server
             receive_thread = threading.Thread(target=receive_message)
-            receive_thread.start
+            receive_thread.start()
         else:
             # no verification message was received
             my_listbox.insert(END, "connection not verified. Goodbye...") # insert this message at last row index (bottom) of the listbox, must be b/c the server did not receive the client's inputted string properly
@@ -97,16 +97,45 @@ def verify_connection(name):
         client_socket.close()
 def disconnect():
     "disconnect from the server"
-    pass
+    global client_socket
+
+    # close the socket
+    client_socket.close()
+
+    # change button states
+    connect_button.config(state=NORMAL)
+    disconnect_button.config(state=DISABLED)  # 'NORMAL' instead of 'ENABLED' I guess b/c turned on by default
+    send_button.config(state=DISABLED)  # 'NORMAL' instead of 'ENABLED' I guess b/c turned on by default
+    # change entry states
+    name_entry.config(state=NORMAL)
+    ip_entry.config(state=NORMAL)
+    port_entry.config(state=NORMAL)
 
 def send_message():
     """send a message to the server to be broadcast"""
-    pass
+
+    # send the message to the server
+    message = input_entry.get() # what the user types in the input entry in the input frame
+    client_socket.send(message.encode(ENCODER))
+
+    # clear the input entry
+    input_entry.delete(0, END)
 
 
 def receive_message():
     """receive an incoming message from the server"""
-    pass
+    global client_socket
+
+    while True:
+        try:
+            # receive an incoming message from the server
+            message = client_socket.recv(BYTESIZE).decode(ENCODER)
+            my_listbox.insert(0, message)
+        except:
+            # an error occured, disconnect from the server
+            my_listbox.insert(0, "Closing the connection. Goodbye...")
+            disconnect()
+            break
 
 
 
@@ -130,7 +159,7 @@ ip_entry = tkinter.Entry(info_frame, borderwidth=3, font=my_font)
 port_label = tkinter.Label(info_frame, text="Port Num:", font=my_font, fg=light_green, bg=black)
 port_entry = tkinter.Entry(info_frame, borderwidth=3, font=my_font, width=10)
 connect_button = tkinter.Button(info_frame, text="Connect", font=my_font, bg=light_green, borderwidth=5, width=10, command=connect) # button calls connect() function when pressed; my button is white instead of light green
-disconnect_button = tkinter.Button(info_frame, text="Disconnect", font=my_font, bg=light_green, borderwidth=5, width=10, state=DISABLED) # disable disconnect button until a valid connection has been established; my button is white instead of light green
+disconnect_button = tkinter.Button(info_frame, text="Disconnect", font=my_font, bg=light_green, borderwidth=5, width=10, state=DISABLED, command=disconnect) # disable disconnect button until a valid connection has been established; my button is white instead of light green
 
 # place the widgets onto the info frame via the grid system
 name_label.grid(row=0, column=0, padx=2, pady=10)
@@ -158,7 +187,7 @@ my_scrollbar.grid(row=0, column=1, sticky="NS") # sticky='NS' expands the scroll
 
 # input frame layout
 input_entry = tkinter.Entry(input_frame, width=45, borderwidth=3, font=my_font)
-send_button = tkinter.Button(input_frame, text="send", borderwidth=5, width=10, font=my_font, bg=light_green, state=DISABLED) # disable send button until a valid connection has been established; my button is white instead of light green
+send_button = tkinter.Button(input_frame, text="send", borderwidth=5, width=10, font=my_font, bg=light_green, state=DISABLED, command=send_message) # disable send button until a valid connection has been established; my button is white instead of light green
 
 # place the widgets onto the input frame via the grid system
 input_entry.grid(row=0, column=0, padx=5, pady=5)
