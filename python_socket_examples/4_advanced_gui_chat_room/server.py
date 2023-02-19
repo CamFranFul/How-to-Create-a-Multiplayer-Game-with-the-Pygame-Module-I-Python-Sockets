@@ -1,6 +1,7 @@
 # server side for GUI chat room (admin)
 import tkinter, socket, threading, json
-from tkinter import DISABLED, VERTICAL
+from tkinter import DISABLED, VERTICAL, END, NORMAL
+
 
 # define window
 root = tkinter.Tk()
@@ -16,35 +17,97 @@ light_green = "#1fc742"
 root.config(bg=black)
 
 # create a connection class to hold our server socket
-Class Connection():
+class Connection():
     """A class to store a connection - a server socket & pertinent information"""
-    def __init___(self):
-        pass
+    def __init__(self):
+        self.host_ip = socket.gethostbyname(socket.gethostname())
+        self.encoder = 'utf-8'
+        self.byte_size = 1024
+
+        self.client_sockets = [] # list of client sockets connected to the server
+        self.client_ips = [] # list of the IP addresses of the client sockets
+        self.banned_ips = [] # list of banned client sockets
+
 
 # define functions
-def start_server(connection)
+def start_server(connection):
     """Start the server on a given port number"""
-    pass
-def end_server(connection)
+    # get the port number to run the server and attach to the connection object
+    # we can append attributes to the "Connection()" class by passing in a "Connection()" obj. as an attribute for this function
+    connection.port = int(port_entry.get()) # shouldn't 'self.port = int(port_entry.get())' be defined in the init function of the Connection() class 1st?; must be appending class atttributes to this "Connection()" class obj. instead b/c the user has to press the 'start_button' 1st which then connects to the 'start_server()' function to then obtain the port number that the user had entered before pressing the 'start_button'
+
+    # create server socket
+    connection.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    connection.server_socket.bind((connection.host_ip, connection.port))
+    connection.server_socket.listen()
+
+    # update GUI
+    history_listbox.delete(0, END)
+    history_listbox.insert(0, f"Server start on port {connection.port}.")
+    end_button.config(state=NORMAL)
+    self_broadcast_button.config(state=NORMAL)
+    message_button.config(state=NORMAL)
+    kick_button.config(state=NORMAL)
+    ban_button.config(state=NORMAL)
+    start_button.config(state=DISABLED)
+
+    # create a thread to continuously listen for connections
+    connect_thread = threading.Thread(target=connect_client, args=(connection,))
+    connect_thread.start()
+
+
+def end_server(connection):
     """Begin the process of ending the server"""
     pass
 
-def connect_client(connection)
-    """connect an incoming client to the server"""
-    pass
-def connect_message(flag, name, message, color)
-    """Return a message packet to be sent"""
-    pass
+def connect_client(connection):
+    """Connect an incoming client to the server"""
+    while True:
+        try:
+            # we can append attributes to the "Connection()" class by passing in a "Connection()" obj. as an attribute for this function
+            client_socket, client_address = connection.server_socket.accept()
+            # check to see if the client's IP address is banned
+            if client_address[0] in connection.banned_ips: # client_address is a tuple consisting of client IP address and port number
+                message_packet = create_message("DISCONNECT", "Admin (private)", "You have been banned...goodbye", light_green)
+                message_json = json.dumps(message_packet) # converting dictionary to string
+                client_socket.send(message_json.encode(connection.encoder)) # encoding string to be sent to client
 
-def process_message(connection, message_json, client_socket, client_address=(0,0))
+                # close the client socket
+                client_socket.close()
+            else:
+                # send a message packet to receive client info
+                message_packet = create_message("INFO", "Admin(private)", "Please send your name", light_green)
+                message_json = json.dumps(message_packet) # converting dictionary to string
+                client_socket.send(message_json.encode(connection.encoder)) # encoding string to be sent to client
+
+                # wait for confirmation message to be sent verifying the connection
+                message_json = client_socket.recv(connection.byte_size) # receive confirmation message from client # encoded bytes obj.
+                process_message(connection, message_json, client_socket, client_address)
+        except:
+            break # don't except anything
+
+
+
+def create_message(flag, name, message, color):
+    """Return a message packet to be sent"""
+    # message packet in the form of a dictionary
+    message_packet = {
+        "flag": flag,
+        "name": name,
+        "message": message,
+        "color": color,
+    }
+
+    return message_packet
+def process_message(connection, message_json, client_socket, client_address=(0,0)):
     """Update server information based on a message packet flag"""
     pass
 
-def broadcast_message(connection, message_json)
+def broadcast_message(connection, message_json):
     """Send a message to all client sockets to the server"""
     pass
 
-def receive_message(connection, client_socket)
+def receive_message(connection, client_socket):
     """Receive an incoming message from a client"""
     pass
 def self_broadcast(connection):
@@ -82,7 +145,7 @@ admin_frame.pack()
 # connection frame layout
 port_label = tkinter.Label(connection_frame, text="Port Number: ", font=my_font, bg=black, fg=light_green)
 port_entry = tkinter.Entry(connection_frame, width=10, borderwidth=3, font=my_font)
-start_button = tkinter.Button(connection_frame, text="Start Server", borderwidth=5, width=15, font=my_font, bg=light_green)
+start_button = tkinter.Button(connection_frame, text="Start Server", borderwidth=5, width=15, font=my_font, bg=light_green, command=lambda:start_server(my_connection)) # lamda means we can link this button to a function that takes in an arg.
 end_button = tkinter.Button(connection_frame, text="End Server", borderwidth=5, width=15, font=my_font, bg=light_green, state=DISABLED)
 
 
@@ -127,5 +190,6 @@ ban_button.grid(row=0, column=2, padx=5, pady=5)
 
 
 
-# run the root window's mainloop()
-root.mainloop() # calls the functions of the Tk() class
+# create a 'Connection' class obj. & run the root window's mainloop()
+my_connection = Connection()
+root.mainloop() # calls the functions of the Tk() class (it  being a function of the Tk()n class itself)
