@@ -76,8 +76,8 @@ def connect_client(connection):
                 client_socket.close()
             else:
                 # send a message packet to receive client info
-                message_packet = create_message("INFO", "Admin(private)", "Please send your name", light_green)
-                message_json = json.dumps(message_packet) # converting dictionary to string
+                message_packet = create_message("INFO", "Admin (private)", "Please send your name", light_green)
+                message_json = json.dumps(message_packet) # converting dictionary to string # can't directly encode from a dict to a bytes obj. but can directly decode
                 client_socket.send(message_json.encode(connection.encoder)) # encoding string to be sent to client
 
                 # wait for confirmation message to be sent verifying the connection
@@ -101,15 +101,49 @@ def create_message(flag, name, message, color):
     return message_packet
 def process_message(connection, message_json, client_socket, client_address=(0,0)):
     """Update server information based on a message packet flag"""
-    pass
+    message_packet = json.loads(message_json) # decode and turn to dict in one step!
+    flag = message_packet["flag"]
+    name = message_packet["name"]
+    message = message_packet["message"]
+    color = message_packet["color"]
+
+    if flag == "INFO":
+        # add the new client info to the appropriate list
+        connection.client_sockets.append(client_socket)
+        connection.client_ips.append(client_address[0]) # adds the client's IP address
+
+        # broadcast the new client joining & update GUI
+        message_packet = create_message("MESSAGE", "Admin (broadcast)", f'{name} has joined the server', light_green)
+        message_json = json.dumps(message_packet)
+        broadcast_message(connection, message_json.encode(connection.encoder))
+
+        # update server UI with the client's name and IP address
+        client_listbox.insert(END, f"Name: {Name}        IP Addr: {client_address}") # add to end of chat history
+
+        # now that a client had been established, start a thread to receive messages
+        receive_thread = threading.Thread(target=receive_message, args=(connection, client_socket,))
+        receive_thread.start()
+
+    elif flag == "MESSAGE":
+        pass
+    elif flag == "DISCONNECT":
+        pass
+    else:
+        # catch for errors
+        history_listbox.insert(0, "Error processing message...") # insert at beginning of chat history
+
+
+
 
 def broadcast_message(connection, message_json):
-    """Send a message to all client sockets to the server"""
-    pass
+    """Send a message to all client sockets to the server...ALL JSON ARE ENCODED"""
+    for client_socket in connection.client_sockets:
+        client_socket.send(message_json)
 
 def receive_message(connection, client_socket):
     """Receive an incoming message from a client"""
     pass
+
 def self_broadcast(connection):
     """Broadcast a special admin message to all clients"""
 
@@ -134,7 +168,7 @@ client_frame = tkinter.Frame(root, bg=black)
 message_frame = tkinter.Frame(root, bg=black)
 admin_frame = tkinter.Frame(root, bg=black)
 
-# I guess the order that you define these baraibles with ".pack()" is the order that they appear on the root window when the program is run
+# I guess the order that you define these variables with ".pack()" is the order that they appear on the root window when the program is run
 connection_frame.pack(pady=5)
 history_frame.pack()
 client_frame.pack(pady=5)
