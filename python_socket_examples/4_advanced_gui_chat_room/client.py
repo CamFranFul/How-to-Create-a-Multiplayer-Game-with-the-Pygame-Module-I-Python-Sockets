@@ -1,5 +1,5 @@
 # client side GUI Chat Room
-import tkinter, socket, threading
+import tkinter, socket, threading, json
 from tkinter import DISABLED, VERTICAL, END, NORMAL, StringVar
 
 
@@ -16,7 +16,7 @@ my_font = ('SimSun', 14)
 black = "#010101"
 light_green = "#1fc742"
 white = "#ffffff"
-red= "ff3855"
+red= "#ff3855"
 orange = "#ffaa1d"
 yellow = "#fff700"
 green = "1fc742"
@@ -29,31 +29,96 @@ root.config(bg=black)
 class Connection():
     "A class to store a connection - a client socket and pertinent information"
     def __init__(self):
-        pass
+        self.encoder = "utf-8"
+        self.bytesize = 1024
 # define functions
 def connect(connection):
     """Connect to a server at a given ip/port address"""
-    pass
+    # clear any previous chats
+    my_listbox.delete(0, END)
+
+    # we can append attributes to the 'Connection()' class by passing in a 'Connection()' obj. as an attribute for this function
+    # I feel as if the 'connect_button' should be disabled until all 3 fields are filled in; otherwise,we should do a try & except block
+    # get required info for connection from input fields
+    connection.name = name_entry.get()
+    connection.target_ip = ip_entry.get() # 192.168.1.247 is local IP address for this computer
+    connection.port = port_entry.get()
+    connection.color = color.get() # choose your color ahead of time before you connect
+
+    try:
+        # create a client socket
+        connection.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        connection.client_socket.connect((connection.target_ip, int(connection.port)))
+
+        # receive an incoming message packet from the server
+        message_json = connection.client_socket.recv(connection.bytesize) # bytes obj. of string rep of dict.
+        process_message(connection, message_json)
+    except:
+        my_listbox.insert(0, "Connection not established...Goodbye.") # insert at beginning of chat history
+
 
 def disconnect(connection):
     """Disconnect the client from the server"""
     pass
 
 def gui_start():
-    """Officially start connection by updating GUI"""
-    pass
-
+    """Officially start connection by updating GUI by enabling and disabling widgets"""
+    # buttons
+    connect_button.config(state=DISABLED)
+    disconnect_button.config(state=NORMAL)
+    send_button.config(state=NORMAL)
+    # entries
+    name_entry.config(state=DISABLED)
+    ip_entry.config(state=DISABLED)
+    port_entry.config(state=DISABLED)
+    # radio buttons
+    for button in color_buttons:
+        button.config(state=DISABLED)
 def gui_end():
     """Officially end connection by updating the GUI"""
     pass
 
 def create_message(flag, name, message, color):
     """Return a message packet to be sent"""
-    pass
+    message_packet = {
+        "flag": flag,
+        "name": name,
+        "message": message,
+        "color": color
+    }
 
+    return message_packet
 def process_message(connection, message_json):
     """Update the client based on message packet flag"""
-    pass
+    message_packet = json.loads(message_json) # decode and turn to dict. in one step!
+    flag = message_packet["flag"]
+    name = message_packet["name"]
+    message = message_packet["message"]
+    color = message_packet["color"]
+
+    if flag == "INFO":
+        # Server is asking for information to verify connection. Send the info.
+        message_packet = create_message("INFO", connection.name, f"{connection.name} Joins the server!", connection.color) # I added "f'{name} joins the server!"" for the message instead
+        message_json = json.dumps(message_packet)
+        connection.client_socket.send(message_json.encode(connection.encoder))
+
+        # enable GUI for chat by enabling and disabling widgets
+        gui_start()
+
+        # create a thread to continuously receive messages from the server
+        receive_thread = threading.Thread(target=receive_message, args=(connection,))
+        receive_thread.start()
+
+    elif flag == 'MESSAGE':
+        pass
+
+    elif flag == 'DISCONNECT':
+        pass
+
+    else:
+        # catch for errors...
+        my_listbox.insert(0, "Error processing message...") # insert at beginning of chat history
+
 
 def send_message(connection):
     "Send a message to the server"
@@ -89,7 +154,7 @@ ip_label = tkinter.Label(info_frame, text="Host IP:", font=my_font, fg=light_gre
 ip_entry = tkinter.Entry(info_frame, borderwidth=3, font=my_font)
 port_label = tkinter.Label(info_frame, text="Port Num:", font=my_font, fg=light_green, bg=black)
 port_entry = tkinter.Entry(info_frame, borderwidth=3, font=my_font, width=10)
-connect_button = tkinter.Button(info_frame, text="Connect", font=my_font, bg=light_green, borderwidth=5, width=10, command=connect) # button calls connect() function when pressed; my button is white instead of light green
+connect_button = tkinter.Button(info_frame, text="Connect", font=my_font, bg=light_green, borderwidth=5, width=10, command=lambda:connect(my_connection)) # button calls connect() function when pressed; my button is white instead of light green #     # I feel as if the 'connect_button' should be disabled until all 3 fields are filled in; otherwise,we should do a try & except block
 disconnect_button = tkinter.Button(info_frame, text="Disconnect", font=my_font, bg=light_green, borderwidth=5, width=10, state=DISABLED, command=disconnect) # disable disconnect button until a valid connection has been established; my button is white instead of light green
 
 # place the widgets onto the info frame via the grid system
@@ -107,6 +172,7 @@ color = StringVar() # 'StringVar()' is a class imported from tkinter module that
 color.set(white) # sets 'color' to the value white by default
 # these widgets will track the string variable object 'color'
 # the value of this string variable object is expressed as a string, in this case colors are defined as strings
+# 'variable = color' links these radio buttons to the variable 'color' based on what the 'value' variable is = to
 white_button = tkinter.Radiobutton(color_frame, width=7, text="White", variable=color, value=white, bg=black, fg=light_green, font=my_font)
 red_button = tkinter.Radiobutton(color_frame, width=7, text="Red", variable=color, value=red, bg=black, fg=light_green, font=my_font)
 orange_button = tkinter.Radiobutton(color_frame, width=7, text="Orange", variable=color, value=orange, bg=black, fg=light_green, font=my_font)
@@ -148,5 +214,6 @@ send_button.grid(row=0, column=1, padx=5, pady=5)
 
 
 
-# run the root window's mainloop()
+# create 'Connection()' class object and run the root window's mainloop()
+my_connection = Connection()
 root.mainloop() # calls the functions of the Tk() class
