@@ -2,16 +2,21 @@
 import pygame, socket, threading, json
 
 #----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# define_IP = socket.gethostbyname(socket.gethostname())
+# define_IP should be of the form '192.168.1' or other addresses
 DEST_IP = socket.gethostbyname(socket.gethostname())
-DEST_PORT = 12345
+DEST_PORT = 54321
 #----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # define classes
 class Connection():
     '''A socket connection class for players to connect to a server'''
     def __init__(self):
         """Initialization for the Connection class"""
-        pass
+        self.encoder = "utf-8"
+        self.header_length = 10 # means messages can be a max of 9,999,999,999 characters or bytes
+
+        # create a socket and connect
+        self.player_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.player_socket.connect((DEST_IP, DEST_PORT))
 class Player():
     '''A player class the client can control'''
     # take in 'connection' as an attribute as the player has to connect to the server to receive all the info about its setup
@@ -76,18 +81,29 @@ class Game():
 # create a connection and get game window information from the server
 # the server will determine Pygame constants (e.g. room size, player size, round time, FPS, total players) & send this info to the connected client
 my_connection = Connection()
+packet_size = my_connection.player_socket.recv(my_connection.header_length).decode(my_connection.encoder) # receive header message packet from server as a string with a bytesize of 10 or 10 characters so the # '3' with nine " "'s
+room_size = int(my_connection.player_socket.recv(int(packet_size)).decode(my_connection.encoder)) # packet size is now the integer 3 instead of string "3" with nine " " 's # everytime we write 'my_connection.player_socket.recv()' we receive the next message the server sends us
+packet_size = my_connection.player_socket.recv(my_connection.header_length).decode(my_connection.encoder) # receive header message packet from server as a string with a bytesize of 10 or 10 characters so the # '3' with nine " "'s
+round_time = int(my_connection.player_socket.recv(int(packet_size)).decode(my_connection.encoder)) # packet size is now the integer 3 instead of string "3" with nine " " 's # everytime we write 'my_connection.player_socket.recv()' we receive the next message the server sends us
+packet_size = my_connection.player_socket.recv(my_connection.header_length).decode(my_connection.encoder) # receive header message packet from server as a string with a bytesize of 10 or 10 characters so the # '3' with nine " "'s
+fps = int(my_connection.player_socket.recv(int(packet_size)).decode(my_connection.encoder)) # packet size is now the integer 3 instead of string "3" with nine " " 's # everytime we write 'my_connection.player_socket.recv()' we receive the next message the server sends us
+packet_size = my_connection.player_socket.recv(my_connection.header_length).decode(my_connection.encoder) # receive header message packet from server as a string with a bytesize of 10 or 10 characters so the # '3' with nine " "'s
+total_players = int(my_connection.player_socket.recv(int(packet_size)).decode(my_connection.encoder)) # packet size is now the integer 3 instead of string "3" with nine " " 's # everytime we write 'my_connection.player_socket.recv()' we receive the next message the server sends us
+
+
+
 
 # Initialize pygame
 pygame.init()
 
 # set game constants
-WINDOW_WIDTH = 700
-WINDOW_HEIGHT = 700
-ROUND_TIME = 60
+WINDOW_WIDTH = room_size # game window size
+WINDOW_HEIGHT = room_size # game window size
+ROUND_TIME = round_time
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 MAGENTA = (155, 0, 155)
-FPS = 30 # main game loop cannot run more than 30 frames per second
+FPS = fps # main game loop cannot run more than 'fps' frames per second
 clock = pygame.time.Clock()
 font = pygame.font.SysFont('gabriola', 28)
 
@@ -97,7 +113,7 @@ pygame.display.set_caption("~~Color Collide~~")
 
 # create player & game objects
 my_player = Player(my_connection)
-my_game = Game(my_connection, my_player, 4)
+my_game = Game(my_connection, my_player, total_players)
 
 # the main game loop
 running = True
